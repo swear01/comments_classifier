@@ -1,5 +1,6 @@
 import pickle
 import lzma
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,12 +26,18 @@ class StorageTests(unittest.TestCase):
                 model.components_ += order * np.spacing(.01)
                 model.exp_dirichlet_component_ += order * np.spacing(.02)
             else:
-                model.components_[:, -1] = np.nextafter(.01, np.inf)
-                model.exp_dirichlet_component_[:, -1] = np.nextafter(.02, np.inf)
+                model.components_[:, 0] = np.nextafter(.01, np.inf)
+                model.exp_dirichlet_component_[:, 0] = np.nextafter(.02, np.inf)
             before = pickle.dumps(model, protocol=4)
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory)/'model.pickle'
                 save_model(model, path)
+                if not dense:
+                    _, state = pickle.loads(lzma.decompress(path.read_bytes()))
+                    for name, fill in [('components_', .01), ('exp_dirichlet_component_', .02)]:
+                        with np.load(io.BytesIO(state[name][0])) as row:
+                            self.assertEqual(row['fill_value'], fill)
+                            self.assertEqual(row['data'].size, 1)
                 original_todense = sparse.COO.todense
                 def require_canonical_coords(coo):
                     self.assertTrue(np.all(np.diff(coo.coords[0]) >= 0))

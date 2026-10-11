@@ -16,7 +16,7 @@ def _write_state(state, filename):
         matrix = state[name]
         rows = []
         for row in matrix:
-            values, counts = np.unique(row[::97], return_counts=True)
+            values, counts = np.unique(row, return_counts=True)
             fill = values[counts.argmax()]
             coo = sparse.COO.from_numpy(row, fill_value=fill)
             # Sorting values helps LZMA; coordinates preserve their positions.
