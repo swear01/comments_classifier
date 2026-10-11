@@ -19,8 +19,9 @@ class StorageTests(unittest.TestCase):
             model.components_ = np.full((2, 32), .01)
             model.exp_dirichlet_component_ = np.full((2, 32), .02)
             if dense:
-                model.components_ += np.arange(64).reshape(2, 32) * np.spacing(.01)
-                model.exp_dirichlet_component_ += np.arange(64).reshape(2, 32) * np.spacing(.02)
+                order = np.random.RandomState(12).permutation(64).reshape(2, 32)
+                model.components_ += order * np.spacing(.01)
+                model.exp_dirichlet_component_ += order * np.spacing(.02)
             else:
                 model.components_[:, -1] = np.nextafter(.01, np.inf)
                 model.exp_dirichlet_component_[:, -1] = np.nextafter(.02, np.inf)

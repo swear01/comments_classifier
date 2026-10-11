@@ -12,32 +12,28 @@ from sklearn.decomposition import LatentDirichletAllocation
 
 def _write_state(state, filename):
     state = state.copy()
-    sparse_rows = False
     for name in ('components_', 'exp_dirichlet_component_'):
         matrix = state[name]
         rows = []
         for row in matrix:
             values, counts = np.unique(row[::97], return_counts=True)
             fill = values[counts.argmax()]
-            if np.count_nonzero(row == fill) > row.size // 2:
-                coo = sparse.COO.from_numpy(row, fill_value=fill)
-                coo.coords = coo.coords.astype(np.int32)
-                buffer = io.BytesIO()
-                sparse.save_npz(buffer, coo, compressed=False)
-                rows.append(buffer.getvalue())
-            else:
-                rows.append(row)
-        if any(isinstance(row, bytes) for row in rows):
-            state[name] = rows
-            sparse_rows = True
-    # Byte position contexts suit float64 values; dense models prefer defaults.
-    filters = [dict(id=lzma.FILTER_LZMA2, preset=9, lc=1, lp=3, pb=0)] if sparse_rows else None
+            coo = sparse.COO.from_numpy(row, fill_value=fill)
+            # Sorting values helps LZMA; coordinates preserve their positions.
+            order = np.argsort(coo.data, kind='stable')
+            coo.data = coo.data[order]
+            coo.coords = coo.coords[:, order].astype(np.int32)
+            buffer = io.BytesIO()
+            sparse.save_npz(buffer, coo, compressed=False)
+            rows.append(buffer.getvalue())
+        state[name] = rows
+    filters = [dict(id=lzma.FILTER_LZMA2, preset=9, lc=1, lp=3, pb=0)]
     filename = Path(filename)
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(dir=filename.parent, delete=False) as f:
             temporary = Path(f.name)
-            with lzma.LZMAFile(f, 'wb', filters=filters, preset=None if filters else 9) as stream:
+            with lzma.LZMAFile(f, 'wb', filters=filters) as stream:
                 pickle.dump(('lda-pydata-v1', state), stream, protocol=4)
             f.flush()
             os.fsync(f.fileno())

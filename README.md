@@ -1,10 +1,12 @@
 # LDA model storage
 
 `lda.py` saves models with `lda_storage.save_model`; `lda_abstract.py` reads
-them with `lda_storage.load_model`. Filenames stay unchanged. Rows containing
-mostly identical values use PyData/Sparse COO with that exact fill value;
-other rows keep their dense NumPy representation. The complete model state
-is compressed with LZMA2. Both float64 matrices, all parameters and the random
+them with `lda_storage.load_model`. Filenames stay unchanged. Rows use
+PyData/Sparse COO with an exact fill value. Stored values are sorted together
+with their coordinates to improve compression without changing their bits
+or positions. Uncompressed sparse NPZ payloads and the complete model state
+are compressed together with LZMA2 (preset 9, lc=1, lp=3, pb=0).
+Both float64 matrices, all parameters and the random
 state are retained. Loading restores NumPy arrays before inference.
 
 Install `sparse` in the environment that runs the project. The storage reader
