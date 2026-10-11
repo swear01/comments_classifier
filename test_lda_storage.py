@@ -3,8 +3,10 @@ import lzma
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
+import sparse
 from scipy.sparse import csr_matrix
 from sklearn.decomposition import LatentDirichletAllocation
 
@@ -29,7 +31,12 @@ class StorageTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory)/'model.pickle'
                 save_model(model, path)
-                restored = load_model(path)
+                original_todense = sparse.COO.todense
+                def require_canonical_coords(coo):
+                    self.assertTrue(np.all(np.diff(coo.coords[0]) >= 0))
+                    return original_todense(coo)
+                with patch.object(sparse.COO, 'todense', require_canonical_coords):
+                    restored = load_model(path)
                 complete = path.read_bytes()
                 path.write_bytes(complete[:-4])
                 with self.assertRaises(lzma.LZMAError):

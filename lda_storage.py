@@ -21,10 +21,9 @@ def _write_state(state, filename):
             coo = sparse.COO.from_numpy(row, fill_value=fill)
             # Sorting values helps LZMA; coordinates preserve their positions.
             order = np.argsort(coo.data, kind='stable')
-            coo.data = coo.data[order]
-            coo.coords = coo.coords[:, order].astype(np.int32)
             buffer = io.BytesIO()
-            sparse.save_npz(buffer, coo, compressed=False)
+            np.savez(buffer, data=coo.data[order], shape=coo.shape,
+                     fill_value=coo.fill_value, coords=coo.coords[:, order].astype(np.int32))
             rows.append(buffer.getvalue())
         state[name] = rows
     filters = [dict(id=lzma.FILTER_LZMA2, preset=9, lc=1, lp=3, pb=0)]
@@ -58,10 +57,15 @@ def load_model(filename):
         raise ValueError('Unsupported LDA storage format')
     for name in ('components_', 'exp_dirichlet_component_'):
         if isinstance(state[name], list):
-            state[name] = np.vstack([
-                sparse.load_npz(io.BytesIO(row)).todense() if isinstance(row, bytes) else row
-                for row in state[name]
-            ])
+            rows = []
+            for row in state[name]:
+                if isinstance(row, bytes):
+                    with np.load(io.BytesIO(row), allow_pickle=False) as data:
+                        row = sparse.COO(coords=data['coords'], data=data['data'],
+                                         shape=tuple(data['shape']), fill_value=data['fill_value'][()],
+                                         sorted=False, has_duplicates=False).todense()
+                rows.append(row)
+            state[name] = np.vstack(rows)
     model = LatentDirichletAllocation.__new__(LatentDirichletAllocation)
     model.__setstate__(state)
     return model

@@ -8,6 +8,8 @@ or positions. Uncompressed sparse NPZ payloads and the complete model state
 are compressed together with LZMA2 (preset 9, lc=1, lp=3, pb=0).
 Both float64 matrices, all parameters and the random
 state are retained. Loading restores NumPy arrays before inference.
+The reader reconstructs canonical COO coordinates with `sorted=False`
+before converting to NumPy; stored NPZ values are ordered for compression.
 
 Install `sparse` in the environment that runs the project. The storage reader
 was tested with Sparse 0.12.0 and 0.19.2. Keep the scikit-learn version used to
