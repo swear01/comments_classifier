@@ -11,6 +11,7 @@ from tqdm import tqdm
 from sklearn import feature_extraction
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
+from lda_storage import save_model
 
 path = './politics/big/'
 subjects = 10
@@ -89,5 +90,4 @@ if __name__ == '__main__':
         print(" ".join([words[i]
                         for i in topic.argsort()[:-subjects - 1:-1]]))
 
-    with open(f'lda_model{subjects}.pickle', 'wb') as f:
-        pickle.dump(lda, f)
+    save_model(lda, f'lda_model{subjects}.pickle')

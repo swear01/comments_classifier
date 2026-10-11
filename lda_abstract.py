@@ -12,6 +12,7 @@ from tqdm import tqdm
 from sklearn import feature_extraction
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
+from lda_storage import load_model
 
 path = './politics/big/'
 #@pysnooper.snoop()
@@ -47,8 +48,7 @@ if __name__ == '__main__':
     with open(f'word_matrix.pickle','rb') as f :
         data = pickle.load(f)
 
-    with open(f'lda_model20.pickle','rb') as f :
-        lda = pickle.load(f)
+    lda = load_model('lda_model20.pickle')
     
     corpus = data.seg_docs
     # 將文本中的詞語，轉換成詞頻矩陣
