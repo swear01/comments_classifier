@@ -46,6 +46,11 @@ class StorageTests(unittest.TestCase):
                     restored = load_model(path)
                 complete = path.read_bytes()
                 path.write_bytes(complete[:-4])
+                with self.assertRaises((EOFError, lzma.LZMAError)):
+                    load_model(path)
+                damaged = bytearray(complete)
+                damaged[-12] ^= 1
+                path.write_bytes(damaged)
                 with self.assertRaises(lzma.LZMAError):
                     load_model(path)
                 path.write_bytes(complete)

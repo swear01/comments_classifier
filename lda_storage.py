@@ -52,7 +52,11 @@ def load_model(filename):
         f.seek(0)
         if not compressed:
             return pickle.load(f)
-        version, state = pickle.loads(lzma.decompress(f.read()))
+        with lzma.LZMAFile(f, 'rb') as stream:
+            version, state = pickle.load(stream)
+            # Read through the XZ footer to verify its checksum and completeness.
+            while stream.read(1024 * 1024):
+                pass
     if version != 'lda-pydata-v1':
         raise ValueError('Unsupported LDA storage format')
     for name in ('components_', 'exp_dirichlet_component_'):
